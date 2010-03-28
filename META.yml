@@ -1,0 +1,33 @@
+---
+abstract: 'Money/currency with formatting and overloading.'
+author:
+  - 'Cory G Watson, C<< <gphat at cpan.org> >>'
+build_requires:
+  ExtUtils::MakeMaker: 6.42
+  Test::Exception: 0
+  Test::utf8: 0
+configure_requires:
+  ExtUtils::MakeMaker: 6.42
+distribution_type: module
+generated_by: 'Module::Install version 0.91'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Data-Money
+no_index:
+  directory:
+    - inc
+    - t
+requires:
+  Check::ISA: 0
+  Locale::Currency: 2.07
+  Locale::Currency::Format: 1.22
+  Math::BigFloat: 0
+  Moose: 0
+  MooseX::Clone: 0
+  MooseX::Types: 0
+  perl: 5.6.1
+resources:
+  license: http://dev.perl.org/licenses/
+version: 0.01
