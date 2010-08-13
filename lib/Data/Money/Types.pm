@@ -13,7 +13,11 @@ coerce Amount,
 
 coerce Amount,
     from Str,
-    via { Math::BigFloat->new($_) };
+    via {
+        # strip out formatting characters
+        $_ =~ tr/-()0-9.//cd;
+        Math::BigFloat->new($_)
+    };
 
 
 subtype CurrencyCode,

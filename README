@@ -1,0 +1,147 @@
+NAME
+    Data::Money - Money/currency with formatting and overloading.
+
+SYNOPSIS
+        use Data::Money;
+
+        my $price = Data::Money->new(value => 1.2. code => 'USD');
+        print $price;            # $1.20
+        print $price->code;      # USD
+        print $price->format;    # FMT_COMMON
+        print $price->as_string; # $1.20
+
+        # Overloading, returns new instance
+        my $m2 = $price + 1;
+        my $m3 = $price - 1;
+
+        # Objects work too
+        my $m4 = $m2 + $m3;
+        my $m5 = $m2 - $m3;
+
+        # Modifies in place
+        $price += 1;
+        $price -= 1;
+
+        print $price->as_string('FMT_SYMBOL'); # $1.20
+
+DESCRIPTION
+    The Data::Money module provides basic currency formatting and number
+    handling via Math::BigFloat:
+
+        my $currency = Data::Money->new(value => 1.23);
+
+    Each Data::Money object will stringify to the original value except in
+    string context, where it stringifies to the format specified in
+    "format".
+
+MOTIVATION
+    Data::Money was created to make it easy to use different currencies
+    (leveraging existing work in "Locale::Currency" and Moose), to allow
+    math operations with proper rounding (via Math::BigFloat) and formatting
+    via Locale::Currency::Format.
+
+OPERATOR OVERLOADING
+    Data::Money overrides some operators. It is important to note which
+    operators change the object's value and which return new ones. Addition
+    and subtraction operators accept either a Data::Money argument or a
+    normal number via scalar. Others expect only a number.
+
+    Data::Money overloads the following operators:
+
+    +   Handled by the "add" method. Returns a new Data::Money object.
+
+    -   Handled by the "subtract" method. Returns a new Data::Money object.
+
+    *   Returns a new Data::Money object.
+
+    +=  Handled by the "add_in_place" method. Modifies the left-hand
+        object's value. Works with either a Data::Money argument or a normal
+        number.
+
+    -=  Handled by the "subtract_in_place" method. Modifies the left-hand
+        object's value. Works with either a Data::Money argument or a normal
+        number.
+
+ATTRIBUTES
+  code
+    Gets/sets the three letter currency code for the current currency
+    object. Defaults to USD
+
+  format
+    Gets/sets the format to be used when "as_string" is called. See
+    Locale::Currency::Format for the available formatting options. Defaults
+    to "FMT_COMMON".
+
+  name
+    Returns the currency name for the current objects currency code. If no
+    currency code is set the method will die.
+
+  value
+    The amount of money/currency. Defaults to 0.
+
+METHODS
+  add($amount)
+    Adds the specified amount to this Data::Money object and returns a new
+    Data::Money object. You can supply either a number of a Data::Money
+    object. Note that this does not modify the existing object.
+
+  add_in_place($amount)
+    Adds the specified amount to this Data::Money object, modifying it's
+    value. You can supply either a number of a Data::Money object. Note that
+    this does modify the existing object.
+
+  as_int
+    Returns the object's value "in pennies" (in the US at least). It strips
+    the value of formatting using "as_float" and of any decimals.
+
+  as_float
+    Returns objects value without any formatting.
+
+  subtract($amount)
+    Subtracts the specified amount to this Data::Money object and returns a
+    new Data::Money object. You can supply either a number of a Data::Money
+    object. Note that this does not modify the existing object.
+
+  subtract_in_place($amount)
+    Subtracts the specified amount to this Data::Money object, modifying
+    it's value. You can supply either a number of a Data::Money object. Note
+    that this does modify the existing object.
+
+  clone(%params)
+    Returns a clone (new instance) of this Data::Money object. You may
+    optionally specify some of the attributes to overwrite.
+
+      $curr->clone({ value => 100 }); # Clones all fields but changes value to 100
+
+    See MooseX::Clone for more information.
+
+  stringify
+    Sames as "as_string".
+
+  as_string
+    Returns the current objects value as a formatted currency string.
+
+SEE ALSO
+    Locale::Currency, Locale::Currency::Format,
+
+ACKNOWLEDGEMENTS
+    This module was originally based on Data::Currency by Christopher H.
+    Laco but I opted to fork and create a whole new module because my work
+    was wildly different from the original. I decided it was better to make
+    a new module than to break back compat and surprise users. Many thanks
+    to him for the great module.
+
+    Inspiration and ideas were also drawn from Math::Currency and
+    Math::BigFloat.
+
+AUTHOR
+    Cory G Watson, "<gphat at cpan.org>"
+
+    Copyright 2010 Cory Watson
+
+    This program is free software; you can redistribute it and/or modify it
+    under the terms of either: the GNU General Public License as published
+    by the Free Software Foundation; or the Artistic License.
+
+    See http://dev.perl.org/licenses/ for more information.
+

@@ -1,5 +1,8 @@
 Revision history for Data::Money
 
+0.02
+    - Strip out formatting (holophrastic)
+
 0.01
     - First version, released on an unsuspecting world.
 
