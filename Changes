@@ -1,5 +1,12 @@
 Revision history for Data::Money
 
+0.03
+    - Added overloads for all basic arithmetic operations to disallow mismatched currency
+    - Add an overloaded three-way comparator and allow coercion from itself
+    - Add absolute value
+    - Add negation
+    - More unit tests
+
 0.02
     - Strip out formatting (holophrastic)
 

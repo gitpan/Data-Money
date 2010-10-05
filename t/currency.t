@@ -1,4 +1,4 @@
-use Test::More;
+use Test::More tests => 12;
 use strict;
 use Encode;
 
@@ -23,6 +23,14 @@ use Data::Money;
 
     my $yen = Data::Money->new(code => 'JPY', value => 1);
     cmp_ok($yen->as_string, 'eq', '¥1', 'JPY formatting');
+    is_sane_utf8($m->as_string);
+
+    my $gbp = Data::Money->new(code => 'GBP', value => 1);
+    cmp_ok($gbp->as_string, 'eq', '£1.00', 'GBP formatting');
+    is_sane_utf8($m->as_string);
+
+    my $cad = Data::Money->new(code => 'CAD', value => 1);
+    cmp_ok($cad->as_string, 'eq', '$1.00', 'CAD formatting');
     is_sane_utf8($m->as_string);
 };
 

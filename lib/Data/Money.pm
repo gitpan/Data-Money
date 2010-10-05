@@ -4,7 +4,7 @@ use warnings;
 use Moose;
 
 use vars qw/$VERSION/;
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 with qw(MooseX::Clone);
 
@@ -14,13 +14,23 @@ use Math::BigFloat;
 use overload
     '+'     => \&add,
     '-'     => \&subtract,
-    '*'     => sub { $_[0]->clone(value => $_[0]->value->copy->bmul($_[1])) },
-    '/'     => sub { $_[0]->clone(value => scalar($_[0]->value->copy->bdiv($_[1]))) },
+    '*'     => \&multiply,
+    '/'     => \&divide,
+    '%'     => \&modulo,
     '+='    => \&add_in_place,
     '-='    => \&subtract_in_place,
+    '*='    => \&multiply_in_place,
+    '/='    => \&divide_in_place,
     '0+'    => sub { $_[0]->value->numify; },
     '""'    => sub { shift->stringify },
+    'bool'  => sub { shift->as_int; },
+    '<=>'   => \&three_way_compare,
+    'cmp'   => \&three_way_compare,
+    'abs'   => sub { shift->absolute },
+    '='     => sub { shift->clone },
+    'neg'   => \&negate,
     fallback => 1;
+
 
 use Data::Money::Types qw(Amount CurrencyCode Format);
 use MooseX::Types::Moose qw(HashRef);
@@ -62,22 +72,43 @@ sub as_int {
     return $str eq '' ? '0' : $str;
 }
 
+sub absolute {
+    my ($self) = @_;
+    return $self->clone(value => abs($self->value));
+}
+
+sub negate {
+    my ($self) = @_;
+    if($self->value < 0) {
+        return $self->absolute;
+    }
+    my $val = 0 - $self->value;
+    return $self->clone(value => $val);
+}
+
 sub add {
-    my ($self, $num) = @_;
+    my $self = shift;
+    my $num = shift || 0;
 
     if(obj($num, 'Data::Money')) {
+        if($self->code ne $num->code) {
+            die('unable to perform arithmetic on different currency types');
+        }
         return $self->clone(value => $self->value->copy->badd($num->value));
     }
-    return $self->clone(value => $self->value->copy->badd(Math::BigFloat->new($num)))
+    return $self->clone(value => $self->value->copy->badd($self->clone(value => $num)->value))
 }
 
 sub add_in_place {
     my ($self, $num) = @_;
 
     if(obj($num, 'Data::Money')) {
+        if($self->code ne $num->code) {
+            die('unable to perform arithmetic on different currency types');
+        }
         $self->value($self->value->copy->badd($num->value));
     } else {
-        $self->value($self->value->copy->badd(Math::BigFloat->new($num)));
+        $self->value($self->value->copy->badd($self->clone(value => $num)->value));
     }
     return $self;
 }
@@ -98,6 +129,7 @@ sub stringify {
     my $self = shift;
     my $format = shift || $self->format;
     my $code = $self->code;
+    my $sign = '';
 
     ## funky eval to get string versions of constants back into the values
     eval '$format = Locale::Currency::Format::' .  $format;
@@ -105,32 +137,107 @@ sub stringify {
     die 'Invalid currency code:  ' . ($code || 'undef')
         unless is_CurrencyCode($code);
 
-    return _to_utf8(
-        Locale::Currency::Format::currency_format($code, $self->as_float, $format)
+    $sign = '-' if($self->value < 0);
+    my $utf8 = _to_utf8(
+        Locale::Currency::Format::currency_format($code, $self->absolute->as_float, $format)
     );
+    return $sign . $utf8;
 };
 
 sub subtract {
-    my ($self, $num) = @_;
+    my $self = shift;
+    my $num = shift || 0;
 
     if(obj($num, 'Data::Money')) {
+        if($self->code ne $num->code) {
+            die('unable to perform arithmetic on different currency types');
+        }
         return $self->clone(value => $self->value->copy->bsub($num->value));
     }
-    return $self->clone(value => $self->value->copy->bsub(Math::BigFloat->new($num)))
+    return $self->clone(value => $self->value->copy->bsub($self->clone(value => $num)->value))
 }
 
 sub subtract_in_place {
     my ($self, $num) = @_;
 
     if(obj($num, 'Data::Money')) {
+        if($self->code ne $num->code) {
+            die('unable to perform arithmetic on different currency types');
+        }
         $self->value($self->value->copy->bsub($num->value));
     } else {
-        $self->value($self->value->copy->bsub(Math::BigFloat->new($num)));
+        $self->value($self->value->copy->bsub($self->clone(value => $num)->value));
     }
-
     return $self;
 }
 
+sub multiply {
+    my ($self, $num) = @_;
+
+    if(obj($num, 'Data::Money')) {
+        if($self->code ne $num->code) {
+            die('unable to perform arithmetic on different currency types');
+        }
+        return $self->clone(value => $self->value->copy->bmul($num->value));
+    }
+    return $self->clone(value => $self->value->copy->bmul($self->clone(value => $num)->value))
+}
+
+sub multiply_in_place {
+    my ($self, $num) = @_;
+
+    if(obj($num, 'Data::Money')) {
+        if($self->code ne $num->code) {
+            die('unable to perform arithmetic on different currency types');
+        }
+        $self->value($self->value->copy->bmul($num->value));
+    } else {
+        $self->value($self->value->copy->bmul($self->clone(value => $num)->value));
+    }
+    return $self;
+}
+
+sub divide {
+    my ($self, $num) = @_;
+    my $val;
+    if(obj($num, 'Data::Money')) {
+        if($self->code ne $num->code) {
+            die('unable to perform arithmetic on different currency types');
+        }
+        $val = $self->value->copy->bdiv($num->value);
+        return $self->clone(value => $val);
+    }
+    $val = $self->value->copy->bdiv($self->clone(value => $num)->value);
+    return $self->clone(value => $val);
+}
+
+sub divide_in_place {
+    my ($self, $num) = @_;
+
+    if(obj($num, 'Data::Money')) {
+        if($self->code ne $num->code) {
+            die('unable to perform arithmetic on different currency types');
+        }
+        $self->value($self->value->copy->bdiv($num->value));
+    } else {
+        $self->value($self->value->copy->bdiv($self->clone(value => $num)->value));
+    }
+    return $self;
+}
+
+sub modulo {
+    my ($self, $num) = @_;
+    my $val;
+    if(obj($num, 'Data::Money')) {
+        if($self->code ne $num->code) {
+            die('unable to perform arithmetic on different currency types');
+        }
+        $val = $self->value->copy->bmod($num->value);
+        return $self->clone(value => $val);
+    }
+    $val = $self->value->copy->bmod($self->clone(value => $num)->value);
+    return $self->clone(value => $val);
+}
 
 sub _to_utf8 {
     my $value = shift;
@@ -142,6 +249,26 @@ sub _to_utf8 {
 
     return $value;
 };
+
+sub three_way_compare {
+    my $self = shift;
+    my $num = shift || 0;
+    my $y;
+
+    if(obj($num, 'Data::Money')) {
+        $y = $num;
+    } else {
+        # we clone here to ensure that if we're comparing a number to
+        # an object, that the currency codes match (and we don't just
+        # get the default).
+        $y = $self->clone(value => $num);
+    }
+    if($self->code ne $y->code) {
+        die('unable to compare different currency types');
+    }
+    return $self->value->copy->bfround(-2) <=> $y->value->copy->bfround(-2);
+}
+
 
 1;
 __END__
@@ -163,14 +290,35 @@ Data::Money - Money/currency with formatting and overloading.
     # Overloading, returns new instance
     my $m2 = $price + 1;
     my $m3 = $price - 1;
+    my $m4 = $price * 1;
+    my $m5 = $price / 1;
+    my $m6 = $price % 1;
 
     # Objects work too
-    my $m4 = $m2 + $m3;
-    my $m5 = $m2 - $m3;
+    my $m7 = $m2 + $m3;
+    my $m8 = $m2 - $m3;
+    my $m9 = $m2 * $m3;
+    my $m10 = $m2 / $m3;
 
     # Modifies in place
     $price += 1;
     $price -= 1;
+    $price *= 1;
+    $price /= 1;
+
+    # Compares against numbers
+    if($m2 > 2)
+    if($m2 < 3)
+    if($m2 == 2.2)
+
+    # And strings
+    if($m2 gt '$2.00')
+    if($m2 lt '$3.00')
+    if($m2 eq '$2.20')
+
+    # and objects
+    if($m2 > $m3)
+    if($m3 lt $m2)
 
     print $price->as_string('FMT_SYMBOL'); # $1.20
 
@@ -194,9 +342,9 @@ L<Locale::Currency::Format>.
 =head1 OPERATOR OVERLOADING
 
 Data::Money overrides some operators.  It is important to note which
-operators change the object's value and which return new ones.  Addition and
-subtraction operators accept either a Data::Money argument or a normal
-number via scalar.  Others expect only a number.
+operators change the object's value and which return new ones.  All
+operators accept either a Data::Money argument or a normal number via
+scalar, and will die if the currency types mismatch.
 
 Data::Money overloads the following operators:
 
@@ -212,7 +360,11 @@ Handled by the C<subtract> method.  Returns a new Data::Money object.
 
 =item *
 
-Returns a new Data::Money object.
+Handled by the C<multiply> method. Returns a new Data::Money object.
+
+=item /
+
+Handled by the C<divide> method. Returns a new Data::Money object.
 
 =item +=
 
@@ -223,6 +375,22 @@ Works with either a Data::Money argument or a normal number.
 
 Handled by the C<subtract_in_place> method.  Modifies the left-hand object's value.
 Works with either a Data::Money argument or a normal number.
+
+=item *=
+
+Handled by the C<multiply_in_place> method.  Modifies the left-hand object's value.
+Works with either a Data::Money argument or a normal number.
+
+=item /=
+
+Handled by the C<divide_in_place> method.  Modifies the left-hand object's value.
+Works with either a Data::Money argument or a normal number.
+
+=item <=>
+
+Performs a three way comparsion. Works with either a Data::Money argument or a
+normal number.
+
 
 =back
 
@@ -258,7 +426,7 @@ object.  Note that this B<does not> modify the existing object.
 
 =head2 add_in_place($amount)
 
-Adds the specified amount to this Data::Money object, modifying it's value.
+Adds the specified amount to this Data::Money object, modifying its value.
 You can supply either a number of a Data::Money object.  Note that this
 B<does> modify the existing object.
 
@@ -279,9 +447,54 @@ object. Note that this B<does not> modify the existing object.
 
 =head2 subtract_in_place($amount)
 
-Subtracts the specified amount to this Data::Money object, modifying it's
+Subtracts the specified amount to this Data::Money object, modifying its
 value. You can supply either a number of a Data::Money object. Note that
 this B<does> modify the existing object.
+
+=head2 multiply($amount)
+
+Multiplies the value of this Data::Money object and returns a new
+Data::Money object. You can supply either a number of a Data::Money
+object. Note that this B<does not> modify the existing object.
+
+=head2 multiply_in_place($amount)
+
+Multiplies the value of this Data::Money object, modifying its value. You
+can supply either a number of a Data::Money object. Note that this B<does>
+modify the existing object.
+
+=head2 divide($amount)
+
+Divides the value of this Data::Money object and returns a new
+Data::Money object. You can supply either a number of a Data::Money
+object. Note that this B<does not> modify the existing object.
+
+=head2 divide_in_place($amount)
+
+Divides the value of this Data::Money object, modifying its value. You can
+supply either a number of a Data::Money object. Note that this B<does>
+modify the existing object.
+
+=head2 modulo
+
+Performs the modulo operation on this Data::Money object, returning a new
+Data::Money object with the value of the remainder.
+
+=head2 three_way_compare
+
+Compares a Data::Money object to another Data::Money object, or anything it is
+capable of coercing - numbers, numerical strings, or Math::BigFloat objects. Both
+numerical and string comparators work.
+
+=head2 negate
+
+Performs the negation operation, returning a new Data::Money object with the opposite
+value (1 to -1, -2 to 2, etc).
+
+=head2 absolute
+
+Returns a new Data::Money object with the value set to the absolute value of the
+original.
 
 =head2 clone(%params)
 
@@ -314,6 +527,10 @@ module.
 
 Inspiration and ideas were also drawn from L<Math::Currency> and
 L<Math::BigFloat>.
+
+Major contributions (more overloaded operators, disallowing operations on
+mismatched currences, absolute value, negation and unit tests) from
+Andrew Nelson.
 
 =head1 AUTHOR
 

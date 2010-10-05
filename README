@@ -13,14 +13,35 @@ SYNOPSIS
         # Overloading, returns new instance
         my $m2 = $price + 1;
         my $m3 = $price - 1;
+        my $m4 = $price * 1;
+        my $m5 = $price / 1;
+        my $m6 = $price % 1;
 
         # Objects work too
-        my $m4 = $m2 + $m3;
-        my $m5 = $m2 - $m3;
+        my $m7 = $m2 + $m3;
+        my $m8 = $m2 - $m3;
+        my $m9 = $m2 * $m3;
+        my $m10 = $m2 / $m3;
 
         # Modifies in place
         $price += 1;
         $price -= 1;
+        $price *= 1;
+        $price /= 1;
+
+        # Compares against numbers
+        if($m2 > 2)
+        if($m2 < 3)
+        if($m2 == 2.2)
+
+        # And strings
+        if($m2 gt '$2.00')
+        if($m2 lt '$3.00')
+        if($m2 eq '$2.20')
+
+        # and objects
+        if($m2 > $m3)
+        if($m3 lt $m2)
 
         print $price->as_string('FMT_SYMBOL'); # $1.20
 
@@ -42,9 +63,9 @@ MOTIVATION
 
 OPERATOR OVERLOADING
     Data::Money overrides some operators. It is important to note which
-    operators change the object's value and which return new ones. Addition
-    and subtraction operators accept either a Data::Money argument or a
-    normal number via scalar. Others expect only a number.
+    operators change the object's value and which return new ones. All
+    operators accept either a Data::Money argument or a normal number via
+    scalar, and will die if the currency types mismatch.
 
     Data::Money overloads the following operators:
 
@@ -52,7 +73,9 @@ OPERATOR OVERLOADING
 
     -   Handled by the "subtract" method. Returns a new Data::Money object.
 
-    *   Returns a new Data::Money object.
+    *   Handled by the "multiply" method. Returns a new Data::Money object.
+
+    /   Handled by the "divide" method. Returns a new Data::Money object.
 
     +=  Handled by the "add_in_place" method. Modifies the left-hand
         object's value. Works with either a Data::Money argument or a normal
@@ -61,6 +84,17 @@ OPERATOR OVERLOADING
     -=  Handled by the "subtract_in_place" method. Modifies the left-hand
         object's value. Works with either a Data::Money argument or a normal
         number.
+
+    *=  Handled by the "multiply_in_place" method. Modifies the left-hand
+        object's value. Works with either a Data::Money argument or a normal
+        number.
+
+    /=  Handled by the "divide_in_place" method. Modifies the left-hand
+        object's value. Works with either a Data::Money argument or a normal
+        number.
+
+    <=> Performs a three way comparsion. Works with either a Data::Money
+        argument or a normal number.
 
 ATTRIBUTES
   code
@@ -86,7 +120,7 @@ METHODS
     object. Note that this does not modify the existing object.
 
   add_in_place($amount)
-    Adds the specified amount to this Data::Money object, modifying it's
+    Adds the specified amount to this Data::Money object, modifying its
     value. You can supply either a number of a Data::Money object. Note that
     this does modify the existing object.
 
@@ -103,9 +137,46 @@ METHODS
     object. Note that this does not modify the existing object.
 
   subtract_in_place($amount)
-    Subtracts the specified amount to this Data::Money object, modifying
-    it's value. You can supply either a number of a Data::Money object. Note
-    that this does modify the existing object.
+    Subtracts the specified amount to this Data::Money object, modifying its
+    value. You can supply either a number of a Data::Money object. Note that
+    this does modify the existing object.
+
+  multiply($amount)
+    Multiplies the value of this Data::Money object and returns a new
+    Data::Money object. You can supply either a number of a Data::Money
+    object. Note that this does not modify the existing object.
+
+  multiply_in_place($amount)
+    Multiplies the value of this Data::Money object, modifying its value.
+    You can supply either a number of a Data::Money object. Note that this
+    does modify the existing object.
+
+  divide($amount)
+    Divides the value of this Data::Money object and returns a new
+    Data::Money object. You can supply either a number of a Data::Money
+    object. Note that this does not modify the existing object.
+
+  divide_in_place($amount)
+    Divides the value of this Data::Money object, modifying its value. You
+    can supply either a number of a Data::Money object. Note that this does
+    modify the existing object.
+
+  modulo
+    Performs the modulo operation on this Data::Money object, returning a
+    new Data::Money object with the value of the remainder.
+
+  three_way_compare
+    Compares a Data::Money object to another Data::Money object, or anything
+    it is capable of coercing - numbers, numerical strings, or
+    Math::BigFloat objects. Both numerical and string comparators work.
+
+  negate
+    Performs the negation operation, returning a new Data::Money object with
+    the opposite value (1 to -1, -2 to 2, etc).
+
+  absolute
+    Returns a new Data::Money object with the value set to the absolute
+    value of the original.
 
   clone(%params)
     Returns a clone (new instance) of this Data::Money object. You may
@@ -133,6 +204,10 @@ ACKNOWLEDGEMENTS
 
     Inspiration and ideas were also drawn from Math::Currency and
     Math::BigFloat.
+
+    Major contributions (more overloaded operators, disallowing operations
+    on mismatched currences, absolute value, negation and unit tests) from
+    Andrew Nelson.
 
 AUTHOR
     Cory G Watson, "<gphat at cpan.org>"

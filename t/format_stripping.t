@@ -1,8 +1,5 @@
-use Test::More;
+use Test::More tests => 2;
 use strict;
-use Encode;
-
-use Test::Exception;
 
 use Data::Money;
 
