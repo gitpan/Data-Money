@@ -2,7 +2,7 @@ package Data::Money::Types;
 
 use MooseX::Types -declare => [ qw(Amount CurrencyCode DataMoney Format) ];
 
-use MooseX::Types::Moose qw(Num Str);
+use MooseX::Types::Moose qw(Num Str Undef);
 use Locale::Currency qw(code2currency);
 
 class_type Amount, { class => 'Math::BigFloat' };
@@ -17,12 +17,17 @@ coerce Amount,
     via {
         # strip out formatting characters
         $_ =~ tr/-()0-9.//cd;
+        $_ = 0 unless($_);
         Math::BigFloat->new($_)
     };
 
 coerce Amount,
     from DataMoney,
     via { Math::BigFloat->new($_->value) };
+
+coerce Amount,
+    from Undef,
+    via { Math::BigFloat->new(0) };
 
 subtype CurrencyCode,
     as Str,

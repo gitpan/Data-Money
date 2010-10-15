@@ -207,7 +207,7 @@ ACKNOWLEDGEMENTS
 
     Major contributions (more overloaded operators, disallowing operations
     on mismatched currences, absolute value, negation and unit tests) from
-    Andrew Nelson.
+    Andrew Nelson "<anelson@cpan.org>".
 
 AUTHOR
     Cory G Watson, "<gphat at cpan.org>"

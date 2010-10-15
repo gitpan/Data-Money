@@ -4,7 +4,7 @@ use warnings;
 use Moose;
 
 use vars qw/$VERSION/;
-$VERSION = '0.03';
+$VERSION = '0.04';
 
 with qw(MooseX::Clone);
 
@@ -530,7 +530,7 @@ L<Math::BigFloat>.
 
 Major contributions (more overloaded operators, disallowing operations on
 mismatched currences, absolute value, negation and unit tests) from
-Andrew Nelson.
+Andrew Nelson C<< <anelson@cpan.org> >>.
 
 =head1 AUTHOR
 
