@@ -4,7 +4,7 @@ use warnings;
 use Moose;
 
 use vars qw/$VERSION/;
-$VERSION = '0.04';
+$VERSION = '0.05';
 
 with qw(MooseX::Clone);
 
@@ -32,6 +32,7 @@ use overload
     fallback => 1;
 
 
+use Data::Money::Exception;
 use Data::Money::Types qw(Amount CurrencyCode Format);
 use MooseX::Types::Moose qw(HashRef);
 use Locale::Currency;
@@ -40,26 +41,57 @@ use Locale::Currency::Format;
 has code => (
     is => 'rw',
     isa => CurrencyCode,
-    default => 'USD'
+    default => 'USD',
 );
 has format => (
     is => 'rw',
     isa => Format,
-    default => 'FMT_COMMON'
+    default => 'FMT_COMMON',
 );
 has value => (
     is => 'rw',
     isa => Amount,
     default => sub { Math::BigFloat->new(0) },
-    coerce => 1
+    coerce => 1,
 );
+
+sub BUILD {
+    my ($self) = @_;
+    my $exp = 0;
+    my $dec = $self->value->copy->bmod(1);
+    if($dec) {
+        $exp = $dec->exponent->babs;
+    }
+    my $prec = Math::BigInt->new($self->_decimal_precision);
+    if($exp > $prec) {
+        Data::Money::Exception->throw(error => 'Excessive precision for this currency type');
+    }
+}
+
+# Method, not an attribute, since format/currency code can be changed on the fly.
+sub _decimal_precision {
+    my ($self, $code) = @_;
+
+    $code ||= $self->code;
+    my $format;
+
+    ## funky eval to get string versions of constants back into the values
+    eval '$format = Locale::Currency::Format::' .  $self->format;
+
+    if(! is_CurrencyCode($code)) {
+        Data::Money::Exception->throw(error => 'Invalid currency code:  ' . ($code || 'undef'));
+    }
+
+    return Locale::Currency::Format::decimal_precision($code) || 0;
+}
+
 
 # Liberally jacked from Math::Currency
 
 sub as_float {
     my ($self) = @_;
 
-    return $self->value->copy->bfround(-2)->bstr;
+    return $self->value->copy->bfround(0 - $self->_decimal_precision)->bstr;
 }
 
 # Liberally jacked from Math::Currency
@@ -67,14 +99,14 @@ sub as_float {
 sub as_int {
     my ($self) = @_;
 
-    (my $str = $self->as_float) =~ s/\.//o;
-    $str =~ s/^(\-?)0+/$1/o;
+    (my $str = $self->as_float) =~ s/\.//omsx;
+    $str =~ s/^(\-?)0+/$1/omsx;
     return $str eq '' ? '0' : $str;
 }
 
 sub absolute {
     my ($self) = @_;
-    return $self->clone(value => abs($self->value));
+    return $self->clone(value => abs $self->value);
 }
 
 sub negate {
@@ -92,7 +124,7 @@ sub add {
 
     if(obj($num, 'Data::Money')) {
         if($self->code ne $num->code) {
-            die('unable to perform arithmetic on different currency types');
+            Data::Money::Exception->throw(error => 'unable to perform arithmetic on different currency types');
         }
         return $self->clone(value => $self->value->copy->badd($num->value));
     }
@@ -104,7 +136,7 @@ sub add_in_place {
 
     if(obj($num, 'Data::Money')) {
         if($self->code ne $num->code) {
-            die('unable to perform arithmetic on different currency types');
+            Data::Money::Exception->throw(error => 'unable to perform arithmetic on different currency types');
         }
         $self->value($self->value->copy->badd($num->value));
     } else {
@@ -118,7 +150,7 @@ sub name {
     my $name = Locale::Currency::code2currency($self->code);
 
     ## Fix for older Locale::Currency w/mispelled Candian
-    $name =~ s/Candian/Canadian/;
+    $name =~ s/Candian/Canadian/ms;
 
     return $name;
 };
@@ -129,19 +161,23 @@ sub stringify {
     my $self = shift;
     my $format = shift || $self->format;
     my $code = $self->code;
-    my $sign = '';
 
     ## funky eval to get string versions of constants back into the values
     eval '$format = Locale::Currency::Format::' .  $format;
 
-    die 'Invalid currency code:  ' . ($code || 'undef')
-        unless is_CurrencyCode($code);
+    if(! is_CurrencyCode($code)) {
+        Data::Money::Exception->throw(error => 'Invalid currency code:  ' . ($code || 'undef'));
+    }
 
-    $sign = '-' if($self->value < 0);
     my $utf8 = _to_utf8(
         Locale::Currency::Format::currency_format($code, $self->absolute->as_float, $format)
     );
-    return $sign . $utf8;
+
+    if($self->value < 0) {
+        return "-$utf8";
+    } else {
+        return $utf8;
+    }
 };
 
 sub subtract {
@@ -150,7 +186,7 @@ sub subtract {
 
     if(obj($num, 'Data::Money')) {
         if($self->code ne $num->code) {
-            die('unable to perform arithmetic on different currency types');
+            Data::Money::Exception->throw(error => 'unable to perform arithmetic on different currency types');
         }
         return $self->clone(value => $self->value->copy->bsub($num->value));
     }
@@ -162,7 +198,7 @@ sub subtract_in_place {
 
     if(obj($num, 'Data::Money')) {
         if($self->code ne $num->code) {
-            die('unable to perform arithmetic on different currency types');
+            Data::Money::Exception->throw(error => 'unable to perform arithmetic on different currency types');
         }
         $self->value($self->value->copy->bsub($num->value));
     } else {
@@ -176,7 +212,7 @@ sub multiply {
 
     if(obj($num, 'Data::Money')) {
         if($self->code ne $num->code) {
-            die('unable to perform arithmetic on different currency types');
+            Data::Money::Exception->throw(error => 'unable to perform arithmetic on different currency types');
         }
         return $self->clone(value => $self->value->copy->bmul($num->value));
     }
@@ -188,7 +224,7 @@ sub multiply_in_place {
 
     if(obj($num, 'Data::Money')) {
         if($self->code ne $num->code) {
-            die('unable to perform arithmetic on different currency types');
+            Data::Money::Exception->throw(error => 'unable to perform arithmetic on different currency types');
         }
         $self->value($self->value->copy->bmul($num->value));
     } else {
@@ -202,7 +238,7 @@ sub divide {
     my $val;
     if(obj($num, 'Data::Money')) {
         if($self->code ne $num->code) {
-            die('unable to perform arithmetic on different currency types');
+            Data::Money::Exception->throw(error => 'unable to perform arithmetic on different currency types');
         }
         $val = $self->value->copy->bdiv($num->value);
         return $self->clone(value => $val);
@@ -216,7 +252,7 @@ sub divide_in_place {
 
     if(obj($num, 'Data::Money')) {
         if($self->code ne $num->code) {
-            die('unable to perform arithmetic on different currency types');
+            Data::Money::Exception->throw(error => 'unable to perform arithmetic on different currency types');
         }
         $self->value($self->value->copy->bdiv($num->value));
     } else {
@@ -230,7 +266,7 @@ sub modulo {
     my $val;
     if(obj($num, 'Data::Money')) {
         if($self->code ne $num->code) {
-            die('unable to perform arithmetic on different currency types');
+            Data::Money::Exception->throw(error => 'unable to perform arithmetic on different currency types');
         }
         $val = $self->value->copy->bmod($num->value);
         return $self->clone(value => $val);
@@ -264,9 +300,9 @@ sub three_way_compare {
         $y = $self->clone(value => $num);
     }
     if($self->code ne $y->code) {
-        die('unable to compare different currency types');
+        Data::Money::Exception->throw(error => 'unable to compare different currency types');
     }
-    return $self->value->copy->bfround(-2) <=> $y->value->copy->bfround(-2);
+    return $self->value->copy->bfround(0 - $self->_decimal_precision) <=> $y->value->copy->bfround(0 - $self->_decimal_precision);
 }
 
 
@@ -325,7 +361,7 @@ Data::Money - Money/currency with formatting and overloading.
 =head1 DESCRIPTION
 
 The Data::Money module provides basic currency formatting and number handling
-via L<Math::BigFloat>:
+via L<Math::BigFloat|Math::BigFloat>:
 
     my $currency = Data::Money->new(value => 1.23);
 
@@ -335,9 +371,9 @@ context, where it stringifies to the format specified in C<format>.
 =head1 MOTIVATION
 
 Data::Money was created to make it easy to use different currencies (leveraging
-existing work in C<Locale::Currency> and L<Moose>), to allow math operations
-with proper rounding (via L<Math::BigFloat>) and formatting via
-L<Locale::Currency::Format>.
+existing work in C<Locale::Currency> and L<Moose|Moose>), to allow math operations
+with proper rounding (via L<Math::BigFloat|Math::BigFloat>) and formatting via
+L<Locale::Currency::Format|Locale::Currency::Format>.
 
 =head1 OPERATOR OVERLOADING
 
@@ -503,7 +539,7 @@ specify some of the attributes to overwrite.
 
   $curr->clone({ value => 100 }); # Clones all fields but changes value to 100
 
-See L<MooseX::Clone> for more information.
+See L<MooseX::Clone|MooseX::Clone> for more information.
 
 =head2 stringify
 
@@ -515,18 +551,18 @@ Returns the current objects value as a formatted currency string.
 
 =head1 SEE ALSO
 
-L<Locale::Currency>, L<Locale::Currency::Format>,
+L<Locale::Currency|Locale::Currency>, L<Locale::Currency::Format|Locale::Currency::Format>,
 
 =head1 ACKNOWLEDGEMENTS
 
-This module was originally based on L<Data::Currency> by Christopher H. Laco
+This module was originally based on L<Data::Currency|Data::Currency> by Christopher H. Laco
 but I opted to fork and create a whole new module because my work was wildly
 different from the original. I decided it was better to make a new module than
 to break back compat and surprise users. Many thanks to him for the great
 module.
 
-Inspiration and ideas were also drawn from L<Math::Currency> and
-L<Math::BigFloat>.
+Inspiration and ideas were also drawn from L<Math::Currency|Math::Currency> and
+L<Math::BigFloat|Math::BigFloat>.
 
 Major contributions (more overloaded operators, disallowing operations on
 mismatched currences, absolute value, negation and unit tests) from

@@ -1,5 +1,9 @@
 Revision history for Data::Money
 
+0.05
+    - Changed croak() to Throwable exceptions
+    - Abandon rounding for enforced precision
+
 0.04
     - Added coercion from undef
     - Fixed coercion from an empty string

@@ -8,6 +8,7 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Data/Money.pm
+lib/Data/Money/Exception.pm
 lib/Data/Money/Types.pm
 Makefile.PL
 MANIFEST			This list of files
@@ -16,3 +17,5 @@ README
 t/currency.t
 t/format_stripping.t
 t/overload.t
+t/format_stripping.t
+t/locale.t

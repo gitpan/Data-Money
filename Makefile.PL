@@ -18,6 +18,7 @@ requires 'Moose';
 requires 'MooseX::Clone';
 requires 'MooseX::Types';
 requires 'Math::BigFloat';
+requires 'Throwable';
 
 eval {
     system 'pod2text lib/Data/Money.pm > README';
