@@ -5,7 +5,6 @@ use Encode;
 use Test::utf8;
 
 use Data::Money;
-use Data::Dump;
 ## currency around the world
 {
     my $m = Data::Money->new(value => 1);

@@ -1,5 +1,8 @@
 Revision history for Data::Money
 
+0.06
+    - Remove a loose dependency in a test that was causing CPANtester failures.
+
 0.05
     - Changed croak() to Throwable exceptions
     - Abandon rounding for enforced precision
