@@ -1,5 +1,8 @@
 Revision history for Data::Money
 
+0.07
+    - Update types to work with current Moose versions
+
 0.06
     - Remove a loose dependency in a test that was causing CPANtester failures.
 

@@ -4,7 +4,7 @@ use warnings;
 use Moose;
 
 use vars qw/$VERSION/;
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 with qw(MooseX::Clone);
 
@@ -394,7 +394,7 @@ Handled by the C<add> method.  Returns a new Data::Money object.
 
 Handled by the C<subtract> method.  Returns a new Data::Money object.
 
-=item *
+=item S< >*
 
 Handled by the C<multiply> method. Returns a new Data::Money object.
 

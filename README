@@ -73,7 +73,7 @@ OPERATOR OVERLOADING
 
     -   Handled by the "subtract" method. Returns a new Data::Money object.
 
-    *   Handled by the "multiply" method. Returns a new Data::Money object.
+     *  Handled by the "multiply" method. Returns a new Data::Money object.
 
     /   Handled by the "divide" method. Returns a new Data::Money object.
 

@@ -43,6 +43,6 @@ subtype CurrencyCode,
     message { 'String is not a valid 3 letter currency code.' };
 
 enum Format,
-    ( qw(FMT_COMMON FMT_HTML FMT_NAME FMT_STANDARD FMT_SYMBOL) );
+    [ qw(FMT_COMMON FMT_HTML FMT_NAME FMT_STANDARD FMT_SYMBOL) ];
 
 1;
